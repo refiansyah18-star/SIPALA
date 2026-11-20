@@ -1,0 +1,229 @@
+erDiagram
+    user_types {
+        bigint id PK
+        varchar name UK "MAHASISWA, ALUMNI, etc"
+        varchar label
+        boolean is_active
+    }
+
+    program_studies {
+        bigint id PK
+        varchar code UK
+        varchar name
+        varchar level "S1, S2, S3, PJJ, PPG"
+        boolean is_active
+    }
+
+    service_units {
+        bigint id PK
+        varchar name
+        varchar type "Rektorat, Fakultas, etc"
+        boolean is_active
+    }
+
+    users {
+        bigint id PK
+        bigint user_type_id FK
+        bigint program_study_id FK "nullable"
+        bigint unit_id FK "nullable"
+        varchar nama
+        varchar email UK
+        varchar nomor_identitas UK
+        varchar password
+        boolean is_active
+        timestamp last_login_at
+    }
+
+    categories {
+        bigint id PK
+        varchar name
+        text description
+        varchar icon
+        int sort_order
+        boolean is_active
+    }
+
+    services {
+        bigint id PK
+        bigint category_id FK
+        bigint unit_id FK "nullable"
+        varchar name
+        text description
+        int sla_duration
+        enum sla_unit "jam, hari, hari_kerja"
+        boolean is_active
+        int sort_order
+    }
+
+    service_targets {
+        bigint id PK
+        bigint service_id FK
+        bigint user_type_id FK
+    }
+
+    service_requirements {
+        bigint id PK
+        bigint service_id FK
+        varchar name
+        text description
+        boolean is_required
+        varchar allowed_file_types
+        int max_file_size
+        int max_file_count
+    }
+
+    service_fields {
+        bigint id PK
+        bigint service_id FK
+        varchar label
+        enum field_type "text, textarea, etc"
+        json options
+        boolean is_required
+    }
+
+    statuses {
+        bigint id PK
+        varchar name UK
+        varchar label
+        varchar color
+        boolean is_default
+        boolean is_terminal
+        boolean is_active
+    }
+
+    tickets {
+        bigint id PK
+        varchar ticket_number UK "SIPALA-2026-000001"
+        bigint user_id FK
+        bigint service_id FK
+        bigint category_id FK
+        bigint program_study_id FK "nullable"
+        bigint unit_id FK "nullable"
+        bigint status_id FK
+        varchar subject
+        text description
+        int sla_duration "snapshot"
+        varchar sla_unit "snapshot"
+        datetime deadline
+        text rejection_reason "nullable"
+        text resolution_note "nullable"
+        timestamp resolved_at "nullable"
+    }
+
+    ticket_field_values {
+        bigint id PK
+        bigint ticket_id FK
+        bigint service_field_id FK
+        text value
+    }
+
+    ticket_attachments {
+        bigint id PK
+        bigint ticket_id FK
+        bigint requirement_id FK "nullable"
+        varchar original_name
+        varchar stored_name
+        varchar file_path
+        int file_size
+        varchar mime_type
+    }
+
+    ticket_assignments {
+        bigint id PK
+        bigint ticket_id FK
+        bigint staff_id FK
+        bigint assigned_by FK
+        text notes
+        timestamp assigned_at
+    }
+
+    ticket_status_histories {
+        bigint id PK
+        bigint ticket_id FK
+        bigint from_status_id FK "nullable"
+        bigint to_status_id FK
+        bigint changed_by FK
+        text note
+        timestamp created_at
+    }
+
+    ticket_messages {
+        bigint id PK
+        bigint ticket_id FK
+        bigint user_id FK
+        text message "max 50 kata"
+        timestamp created_at
+    }
+
+    staff_specialties {
+        bigint id PK
+        bigint user_id FK
+        bigint service_id FK
+    }
+
+    email_notifications {
+        bigint id PK
+        bigint ticket_id FK
+        bigint user_id FK
+        varchar type "REJECTED, COMPLETED"
+        varchar subject
+        text body
+        varchar status "PENDING, SENT, FAILED"
+        timestamp sent_at
+    }
+
+    activity_logs {
+        bigint id PK
+        bigint user_id FK
+        varchar action
+        varchar module
+        bigint reference_id
+        text description
+        varchar ip_address
+        timestamp created_at
+    }
+
+    settings {
+        bigint id PK
+        varchar key UK
+        text value
+    }
+
+    users ||--o{ tickets : "creates"
+    users }o--|| user_types : "has type"
+    users }o--o| program_studies : "enrolled in"
+    users }o--o| service_units : "works at"
+
+    categories ||--o{ services : "contains"
+    services }o--|| categories : "belongs to"
+    services }o--o| service_units : "handled by"
+    services ||--o{ service_targets : "targeted to"
+    services ||--o{ service_requirements : "requires"
+    services ||--o{ service_fields : "has fields"
+    service_targets }o--|| user_types : "for type"
+
+    tickets }o--|| users : "created by"
+    tickets }o--|| services : "for service"
+    tickets }o--|| categories : "in category"
+    tickets }o--|| statuses : "current status"
+    tickets }o--o| program_studies : "related prodi"
+    tickets }o--o| service_units : "target unit"
+    tickets ||--o{ ticket_field_values : "has values"
+    tickets ||--o{ ticket_attachments : "has files"
+    tickets ||--o{ ticket_assignments : "assigned"
+    tickets ||--o{ ticket_status_histories : "status history"
+    tickets ||--o{ ticket_messages : "messages"
+    tickets ||--o{ email_notifications : "notifications"
+
+    ticket_field_values }o--|| service_fields : "for field"
+    ticket_attachments }o--o| service_requirements : "fulfills"
+    ticket_assignments }o--|| users : "staff"
+    ticket_status_histories }o--o| statuses : "from"
+    ticket_status_histories }o--|| statuses : "to"
+    ticket_status_histories }o--|| users : "changed by"
+    ticket_messages }o--|| users : "sent by"
+
+    staff_specialties }o--|| users : "staff"
+    staff_specialties }o--|| services : "specializes"
+    email_notifications }o--|| users : "recipient"
+    activity_logs }o--|| users : "performed by"

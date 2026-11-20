@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIPALA — Entity Relationship Diagram</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+            min-height: 100vh;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e1b4b, #312e81, #4338ca);
+            padding: 32px 48px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #c7d2fe, #67e8f9);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .header p { color: #a5b4fc; margin-top: 4px; font-size: 14px; }
+        .header .meta {
+            display: flex; gap: 24px; margin-top: 16px; font-size: 12px; color: #94a3b8;
+        }
+        .header .meta span { display: flex; align-items: center; gap: 6px; }
+
+        .tabs {
+            display: flex;
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            padding: 0 48px;
+            overflow-x: auto;
+        }
+        .tab {
+            padding: 14px 24px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+        .tab:hover { color: #e2e8f0; }
+        .tab.active { color: #818cf8; border-bottom-color: #818cf8; }
+
+        .content { padding: 32px 48px; }
+
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ERD Diagram */
+        .erd-container {
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px;
+            overflow-x: auto;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+        }
+
+        /* Table Schema Cards */
+        .schema-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+            gap: 24px;
+        }
+        .schema-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .schema-card:hover {
+            border-color: #6366f1;
+            box-shadow: 0 0 20px rgba(99,102,241,0.15);
+        }
+        .schema-card-header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #334155;
+        }
+        .schema-card-header h3 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #a5b4fc;
+        }
+        .schema-card-header .badge {
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .badge-master { background: #1e3a5f; color: #7dd3fc; }
+        .badge-service { background: #3b1f5e; color: #c4b5fd; }
+        .badge-ticket { background: #3b1f1f; color: #fca5a5; }
+        .badge-support { background: #1f3b2e; color: #86efac; }
+
+        .schema-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .schema-table tr { border-bottom: 1px solid #293548; }
+        .schema-table tr:last-child { border-bottom: none; }
+        .schema-table td {
+            padding: 8px 20px;
+            font-size: 12.5px;
+            vertical-align: middle;
+        }
+        .col-name {
+            font-weight: 600;
+            color: #e2e8f0;
+            font-family: 'Courier New', monospace;
+            white-space: nowrap;
+        }
+        .col-name.pk { color: #fbbf24; }
+        .col-name.fk { color: #38bdf8; }
+        .col-type {
+            color: #94a3b8;
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+        .col-constraint {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .pk-badge { color: #fbbf24; }
+        .fk-badge { color: #38bdf8; }
+        .nn-badge { color: #f87171; }
+        .uq-badge { color: #a78bfa; }
+        .df-badge { color: #94a3b8; }
+
+        .col-icon {
+            width: 30px;
+            text-align: center;
+        }
+        .icon-pk { color: #fbbf24; font-size: 11px; }
+        .icon-fk { color: #38bdf8; font-size: 11px; }
+        .icon-col { color: #475569; font-size: 9px; }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+        }
+
+        /* Summary */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+        .summary-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+        }
+        .summary-card .value {
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #818cf8, #22d3ee);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .summary-card .label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1>📐 SIPALA — Entity Relationship Diagram</h1>
+    <p>Sistem Pengaduan dan Layanan Akademik Terintegrasi</p>
+    <div class="meta">
+        <span>📋 PRD Version 3.0</span>
+        <span>🗄️ 20 Tables</span>
+        <span>🔗 MySQL / InnoDB</span>
+        <span>📅 Oktober 2026</span>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="showTab('diagram')">📊 ER Diagram</div>
+    <div class="tab" onclick="showTab('schema')">📋 Table Schema</div>
+    <div class="tab" onclick="showTab('relations')">🔗 Relationships</div>
+</div>
+
+<div class="content">
+
+    <!-- SUMMARY -->
+    <div class="summary-grid">
+        <div class="summary-card">
+            <div class="value">20</div>
+            <div class="label">Total Tables</div>
+        </div>
+        <div class="summary-card">
+            <div class="value">4</div>
+            <div class="label">Master Data</div>
+        </div>
+        <div class="summary-card">
+            <div class="value">6</div>
+            <div class="label">Service Tables</div>
+        </div>
+        <div class="summary-card">
+            <div class="value">6</div>
+            <div class="label">Ticket Tables</div>
+        </div>
+        <div class="summary-card">
+            <div class="value">4</div>
+            <div class="label">Support Tables</div>
+        </div>
+    </div>
+
+    <!-- TAB 1: ER DIAGRAM -->
+    <div id="tab-diagram" class="tab-content active">
+        <div class="erd-container">
+            <div class="mermaid">
+erDiagram
+    user_types {
+        bigint id PK
+        varchar name UK "MAHASISWA, ALUMNI, etc"
+        varchar label
+        boolean is_active
+    }
+
+    program_studies {
+        bigint id PK
+        varchar code UK
+        varchar name
+        varchar level "S1, S2, S3, PJJ, PPG"
+        boolean is_active
+    }
+
+    service_units {
+        bigint id PK
+        varchar name
+        varchar type "Rektorat, Fakultas, etc"
+        boolean is_active
+    }
+
+    users {
+        bigint id PK
+        bigint user_type_id FK
+        bigint program_study_id FK "nullable"
+        bigint unit_id FK "nullable"
+        varchar nama
+        varchar email UK
+        varchar nomor_identitas UK
+        varchar password
+        boolean is_active
+        timestamp last_login_at
+    }
+
+    categories {
+        bigint id PK
+        varchar name
+        text description
+        varchar icon
+        int sort_order
+        boolean is_active
+    }
+
+    services {
+        bigint id PK
+        bigint category_id FK
+        bigint unit_id FK "nullable"
+        varchar name
+        text description
+        int sla_duration
+        enum sla_unit "jam, hari, hari_kerja"
+        boolean is_active
+        int sort_order
+    }
+
+    service_targets {
+        bigint id PK
+        bigint service_id FK
+        bigint user_type_id FK
+    }
+
+    service_requirements {
+        bigint id PK
+        bigint service_id FK
+        varchar name
+        text description
+        boolean is_required
+        varchar allowed_file_types
+        int max_file_size
+        int max_file_count
+    }
+
+    service_fields {
+        bigint id PK
+        bigint service_id FK
+        varchar label
+        enum field_type "text, textarea, etc"
+        json options
+        boolean is_required
+    }
+
+    statuses {
+        bigint id PK
+        varchar name UK
+        varchar label
+        varchar color
+        boolean is_default
+        boolean is_terminal
+        boolean is_active
+    }
+
+    tickets {
+        bigint id PK
+        varchar ticket_number UK "SIPALA-2026-000001"
+        bigint user_id FK
+        bigint service_id FK
+        bigint category_id FK
+        bigint program_study_id FK "nullable"
+        bigint unit_id FK "nullable"
+        bigint status_id FK
+        varchar subject
+        text description
+        int sla_duration "snapshot"
+        varchar sla_unit "snapshot"
+        datetime deadline
+        text rejection_reason "nullable"
+        text resolution_note "nullable"
+        timestamp resolved_at "nullable"
+    }
+
+    ticket_field_values {
+        bigint id PK
+        bigint ticket_id FK
+        bigint service_field_id FK
+        text value
+    }
+
+    ticket_attachments {
+        bigint id PK
+        bigint ticket_id FK
+        bigint requirement_id FK "nullable"
+        varchar original_name
+        varchar stored_name
+        varchar file_path
+        int file_size
+        varchar mime_type
+    }
+
+    ticket_assignments {
+        bigint id PK
+        bigint ticket_id FK
+        bigint staff_id FK
+        bigint assigned_by FK
+        text notes
+        timestamp assigned_at
+    }
+
+    ticket_status_histories {
+        bigint id PK
+        bigint ticket_id FK
+        bigint from_status_id FK "nullable"
+        bigint to_status_id FK
+        bigint changed_by FK
+        text note
+        timestamp created_at
+    }
+
+    ticket_messages {
+        bigint id PK
+        bigint ticket_id FK
+        bigint user_id FK
+        text message "max 50 kata"
+        timestamp created_at
+    }
+
+    staff_specialties {
+        bigint id PK
+        bigint user_id FK
+        bigint service_id FK
+    }
+
+    email_notifications {
+        bigint id PK
+        bigint ticket_id FK
+        bigint user_id FK
+        varchar type "REJECTED, COMPLETED"
+        varchar subject
+        text body
+        varchar status "PENDING, SENT, FAILED"
+        timestamp sent_at
+    }
+
+    activity_logs {
+        bigint id PK
+        bigint user_id FK
+        varchar action
+        varchar module
+        bigint reference_id
+        text description
+        varchar ip_address
+        timestamp created_at
+    }
+
+    settings {
+        bigint id PK
+        varchar key UK
+        text value
+    }
+
+    %% RELATIONSHIPS
+    users ||--o{ tickets : "creates"
+    users }o--|| user_types : "has type"
+    users }o--o| program_studies : "enrolled in"
+    users }o--o| service_units : "works at"
+
+    categories ||--o{ services : "contains"
+    services }o--|| categories : "belongs to"
+    services }o--o| service_units : "handled by"
+    services ||--o{ service_targets : "targeted to"
+    services ||--o{ service_requirements : "requires"
+    services ||--o{ service_fields : "has fields"
+    service_targets }o--|| user_types : "for type"
+
+    tickets }o--|| users : "created by"
+    tickets }o--|| services : "for service"
+    tickets }o--|| categories : "in category"
+    tickets }o--|| statuses : "current status"
+    tickets }o--o| program_studies : "related prodi"
+    tickets }o--o| service_units : "target unit"
+    tickets ||--o{ ticket_field_values : "has values"
+    tickets ||--o{ ticket_attachments : "has files"
+    tickets ||--o{ ticket_assignments : "assigned"
+    tickets ||--o{ ticket_status_histories : "status history"
+    tickets ||--o{ ticket_messages : "messages"
+    tickets ||--o{ email_notifications : "notifications"
+
+    ticket_field_values }o--|| service_fields : "for field"
+    ticket_attachments }o--o| service_requirements : "fulfills"
+    ticket_assignments }o--|| users : "staff"
+    ticket_status_histories }o--o| statuses : "from"
+    ticket_status_histories }o--|| statuses : "to"
+    ticket_status_histories }o--|| users : "changed by"
+    ticket_messages }o--|| users : "sent by"
+
+    staff_specialties }o--|| users : "staff"
+    staff_specialties }o--|| services : "specializes"
+    email_notifications }o--|| users : "recipient"
+    activity_logs }o--|| users : "performed by"
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 2: TABLE SCHEMA -->
+    <div id="tab-schema" class="tab-content">
+        <div class="legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#1e3a5f"></div> Master Data</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3b1f5e"></div> Service Management</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#3b1f1f"></div> Ticket Management</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#1f3b2e"></div> Support</div>
+            <div class="legend-item"><span style="color:#fbbf24">🔑</span> Primary Key</div>
+            <div class="legend-item"><span style="color:#38bdf8">🔗</span> Foreign Key</div>
+        </div>
+
+        <div class="schema-grid">
+            <!-- MASTER: user_types -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>user_types</h3>
+                    <span class="badge badge-master">Master</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">name</td><td class="col-type">VARCHAR(50)</td><td class="col-constraint"><span class="uq-badge">UNIQUE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">label</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT true</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">created_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">updated_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"></td></tr>
+                </table>
+            </div>
+
+            <!-- MASTER: program_studies -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>program_studies</h3>
+                    <span class="badge badge-master">Master</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">code</td><td class="col-type">VARCHAR(20)</td><td class="col-constraint"><span class="uq-badge">UNIQUE NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">name</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">level</td><td class="col-type">VARCHAR(50)</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT true</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">timestamps</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"></td></tr>
+                </table>
+            </div>
+
+            <!-- MASTER: service_units -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>service_units</h3>
+                    <span class="badge badge-master">Master</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">name</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">type</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT true</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">timestamps</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"></td></tr>
+                </table>
+            </div>
+
+            <!-- MASTER: users -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>users</h3>
+                    <span class="badge badge-master">Master</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">user_type_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → user_types</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">program_study_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">unit_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">nama</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">email</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="uq-badge">UNIQUE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">nomor_identitas</td><td class="col-type">VARCHAR(50)</td><td class="col-constraint"><span class="uq-badge">UNIQUE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">password</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">HASHED</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT true</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">last_login_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SERVICE: categories -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>categories</h3>
+                    <span class="badge badge-service">Service</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">name</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">description</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">icon</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">sort_order</td><td class="col-type">INT</td><td class="col-constraint"><span class="df-badge">DEFAULT 0</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT true</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SERVICE: services -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>services</h3>
+                    <span class="badge badge-service">Service</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">category_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → categories</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">unit_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">name</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">description</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">sla_duration</td><td class="col-type">INT</td><td class="col-constraint"><span class="df-badge">DEFAULT 3</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">sla_unit</td><td class="col-type">ENUM</td><td class="col-constraint"><span class="df-badge">jam|hari|hari_kerja</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_active</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT true</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SERVICE: service_targets -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>service_targets</h3>
+                    <span class="badge badge-service">Pivot</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">service_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">user_type_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">created_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"><span class="uq-badge">UNIQUE(service,type)</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SERVICE: service_requirements -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>service_requirements</h3>
+                    <span class="badge badge-service">Service</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">service_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">name</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_required</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT true</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">allowed_file_types</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="df-badge">pdf,jpg,jpeg,png</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">max_file_size</td><td class="col-type">INT</td><td class="col-constraint"><span class="df-badge">DEFAULT 2048 KB</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">max_file_count</td><td class="col-type">INT</td><td class="col-constraint"><span class="df-badge">DEFAULT 1</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SERVICE: service_fields -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>service_fields</h3>
+                    <span class="badge badge-service">Service</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">service_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">label</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">field_type</td><td class="col-type">ENUM</td><td class="col-constraint"><span class="df-badge">text|textarea|...</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">options</td><td class="col-type">JSON</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_required</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT false</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SERVICE: statuses -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>statuses</h3>
+                    <span class="badge badge-service">Service</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">name</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="uq-badge">UNIQUE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">label</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">color</td><td class="col-type">VARCHAR(20)</td><td class="col-constraint"><span class="df-badge">#6b7280</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_default</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT false</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">is_terminal</td><td class="col-type">BOOLEAN</td><td class="col-constraint"><span class="df-badge">DEFAULT false</span></td></tr>
+                </table>
+            </div>
+
+            <!-- TICKET: tickets -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>tickets</h3>
+                    <span class="badge badge-ticket">Ticket</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">ticket_number</td><td class="col-type">VARCHAR(30)</td><td class="col-constraint"><span class="uq-badge">UNIQUE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">user_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → users</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">service_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → services</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">category_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → categories</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">status_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → statuses</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">subject</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">description</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">sla_duration</td><td class="col-type">INT</td><td class="col-constraint"><span class="nn-badge">SNAPSHOT</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">sla_unit</td><td class="col-type">VARCHAR(20)</td><td class="col-constraint"><span class="nn-badge">SNAPSHOT</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">deadline</td><td class="col-type">DATETIME</td><td class="col-constraint"><span class="nn-badge">CALCULATED</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">rejection_reason</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">resolved_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                </table>
+            </div>
+
+            <!-- TICKET: ticket_attachments -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>ticket_attachments</h3>
+                    <span class="badge badge-ticket">Ticket</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">ticket_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">requirement_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">original_name</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">stored_name</td><td class="col-type">VARCHAR(255)</td><td class="col-constraint"><span class="nn-badge">RANDOM</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">file_size</td><td class="col-type">INT UNSIGNED</td><td class="col-constraint"><span class="nn-badge">BYTES</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">mime_type</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="nn-badge">VALIDATED</span></td></tr>
+                </table>
+            </div>
+
+            <!-- TICKET: ticket_assignments -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>ticket_assignments</h3>
+                    <span class="badge badge-ticket">Ticket</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">ticket_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">staff_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → users</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">assigned_by</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → users</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">notes</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">assigned_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                </table>
+            </div>
+
+            <!-- TICKET: ticket_status_histories -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>ticket_status_histories</h3>
+                    <span class="badge badge-ticket">Ticket</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">ticket_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">from_status_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">to_status_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → statuses</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">changed_by</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → users</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">note</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                </table>
+            </div>
+
+            <!-- TICKET: ticket_messages -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>ticket_messages</h3>
+                    <span class="badge badge-ticket">Ticket</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">ticket_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">user_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → users</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">message</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="nn-badge">MAX 50 KATA</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">created_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"></td></tr>
+                </table>
+            </div>
+
+            <!-- SUPPORT: staff_specialties -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>staff_specialties</h3>
+                    <span class="badge badge-support">Pivot</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">user_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">service_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">created_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"><span class="uq-badge">UNIQUE(user,svc)</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SUPPORT: email_notifications -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>email_notifications</h3>
+                    <span class="badge badge-support">Support</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">ticket_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK CASCADE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">user_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → users</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">type</td><td class="col-type">VARCHAR(50)</td><td class="col-constraint"><span class="nn-badge">REJECTED|COMPLETED</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">status</td><td class="col-type">VARCHAR(20)</td><td class="col-constraint"><span class="df-badge">PENDING|SENT|FAILED</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">sent_at</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SUPPORT: activity_logs -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>activity_logs</h3>
+                    <span class="badge badge-support">Support</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-fk">🔗</span></td><td class="col-name fk">user_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="fk-badge">FK → users</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">action</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">module</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="nn-badge">NOT NULL</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">reference_id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">description</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">ip_address</td><td class="col-type">VARCHAR(45)</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                </table>
+            </div>
+
+            <!-- SUPPORT: settings -->
+            <div class="schema-card">
+                <div class="schema-card-header">
+                    <h3>settings</h3>
+                    <span class="badge badge-support">Support</span>
+                </div>
+                <table class="schema-table">
+                    <tr><td class="col-icon"><span class="icon-pk">🔑</span></td><td class="col-name pk">id</td><td class="col-type">BIGINT UNSIGNED</td><td class="col-constraint"><span class="pk-badge">PK AI</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">key</td><td class="col-type">VARCHAR(100)</td><td class="col-constraint"><span class="uq-badge">UNIQUE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">value</td><td class="col-type">TEXT</td><td class="col-constraint"><span class="df-badge">NULLABLE</span></td></tr>
+                    <tr><td class="col-icon"><span class="icon-col">○</span></td><td class="col-name">timestamps</td><td class="col-type">TIMESTAMP</td><td class="col-constraint"></td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TAB 3: RELATIONSHIPS -->
+    <div id="tab-relations" class="tab-content">
+        <div class="erd-container">
+            <div class="mermaid">
+graph TB
+    subgraph MASTER["🗂️ MASTER DATA"]
+        UT[user_types]
+        PS[program_studies]
+        SU[service_units]
+        U[users]
+    end
+
+    subgraph SERVICE["⚙️ SERVICE MANAGEMENT"]
+        CAT[categories]
+        SVC[services]
+        ST[service_targets]
+        SR[service_requirements]
+        SF[service_fields]
+        STS[statuses]
+    end
+
+    subgraph TICKET["🎫 TICKET MANAGEMENT"]
+        T[tickets]
+        TFV[ticket_field_values]
+        TA[ticket_attachments]
+        TAS[ticket_assignments]
+        TSH[ticket_status_histories]
+        TM[ticket_messages]
+    end
+
+    subgraph SUPPORT["📊 SUPPORT"]
+        SS[staff_specialties]
+        EN[email_notifications]
+        AL[activity_logs]
+        SET[settings]
+    end
+
+    U -->|belongs_to| UT
+    U -.->|nullable| PS
+    U -.->|nullable| SU
+
+    SVC -->|belongs_to| CAT
+    SVC -.->|nullable| SU
+    ST -->|pivot| SVC
+    ST -->|pivot| UT
+    SR -->|belongs_to| SVC
+    SF -->|belongs_to| SVC
+
+    T -->|created_by| U
+    T -->|for_service| SVC
+    T -->|in_category| CAT
+    T -->|current_status| STS
+    T -.->|nullable| PS
+    T -.->|nullable| SU
+
+    TFV -->|belongs_to| T
+    TFV -->|for_field| SF
+    TA -->|belongs_to| T
+    TA -.->|fulfills| SR
+    TAS -->|belongs_to| T
+    TAS -->|staff| U
+    TSH -->|belongs_to| T
+    TSH -->|from/to| STS
+    TM -->|belongs_to| T
+    TM -->|sent_by| U
+
+    SS -->|staff| U
+    SS -->|specializes| SVC
+    EN -->|for_ticket| T
+    AL -->|performed_by| U
+
+    style MASTER fill:#1e3a5f,stroke:#3b82f6,color:#fff
+    style SERVICE fill:#3b1f5e,stroke:#8b5cf6,color:#fff
+    style TICKET fill:#3b1f1f,stroke:#ef4444,color:#fff
+    style SUPPORT fill:#1f3b2e,stroke:#10b981,color:#fff
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        er: {
+            layoutDirection: 'TB',
+            minEntityWidth: 100,
+            minEntityHeight: 75,
+            entityPadding: 15,
+            useMaxWidth: false
+        },
+        flowchart: {
+            useMaxWidth: false,
+            htmlLabels: true
+        }
+    });
+
+    function showTab(name) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+
+        event.target.classList.add('active');
+        document.getElementById('tab-' + name).classList.add('active');
+    }
+</script>
+
+</body>
+</html>
