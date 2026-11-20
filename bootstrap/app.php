@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->appendToGroup('web', \App\Http\Middleware\SecurityHeaders::class);
+
         $middleware->alias([
+            'active' => \App\Http\Middleware\EnsureUserIsActive::class,
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'log.activity' => \App\Http\Middleware\LogActivity::class,
             'prevent.back' => \App\Http\Middleware\PreventBackHistory::class,
@@ -47,7 +50,9 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             $previousUrl = url()->previous();
-            $targetUrl = ($previousUrl && $previousUrl !== $request->fullUrl())
+            $previousHost = $previousUrl ? parse_url($previousUrl, PHP_URL_HOST) : null;
+            $isSameHost = $previousHost && strcasecmp($previousHost, $request->getHost()) === 0;
+            $targetUrl = ($isSameHost && $previousUrl !== $request->fullUrl())
                 ? $previousUrl
                 : route('login');
 

@@ -112,9 +112,25 @@ class AlumniVerificationController extends Controller
             abort(404, 'Berkas bukti kelulusan tidak ditemukan.');
         }
 
-        return Storage::disk('local')->response(
+        $detectedMime = strtolower((string) Storage::disk('local')->mimeType($registration->proof_file_path));
+        $safeInlineMimes = ['application/pdf', 'image/jpeg', 'image/png'];
+        $headers = [
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline';",
+        ];
+
+        if (in_array($detectedMime, $safeInlineMimes, true)) {
+            return Storage::disk('local')->response(
+                $registration->proof_file_path,
+                $registration->proof_original_name,
+                $headers
+            );
+        }
+
+        return Storage::disk('local')->download(
             $registration->proof_file_path,
-            $registration->proof_original_name
+            $registration->proof_original_name,
+            $headers
         );
     }
 

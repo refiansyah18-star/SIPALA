@@ -65,8 +65,8 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        if ($category->services()->exists()) {
-            return redirect()->route('admin.categories.index')->with('error', 'Kategori tidak dapat dihapus karena masih memiliki layanan terkait. Silakan nonaktifkan kategori alih-alih menghapus.');
+        if ($category->services()->exists() || $category->tickets()->exists()) {
+            return redirect()->route('admin.categories.index')->with('error', 'Kategori tidak dapat dihapus karena masih memiliki layanan atau tiket terkait. Silakan nonaktifkan kategori alih-alih menghapus.');
         }
 
         $category->delete();

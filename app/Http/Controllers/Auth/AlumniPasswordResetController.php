@@ -105,6 +105,16 @@ class AlumniPasswordResetController extends Controller
      */
     public function reset(Request $request)
     {
+        $rateKey = 'alumni-reset-submit|' . $request->ip();
+        if (RateLimiter::tooManyAttempts($rateKey, 10)) {
+            $minutes = max(1, (int) ceil(RateLimiter::availableIn($rateKey) / 60));
+            throw ValidationException::withMessages([
+                'email' => ["Terlalu banyak percobaan reset kata sandi. Silakan tunggu {$minutes} menit."],
+            ]);
+        }
+
+        RateLimiter::hit($rateKey, self::RESET_DECAY_SECONDS);
+
         $validated = $request->validate([
             'token' => 'required|string',
             'email' => 'required|email|max:255',

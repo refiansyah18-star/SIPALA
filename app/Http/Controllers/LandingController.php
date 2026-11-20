@@ -85,7 +85,7 @@ class LandingController extends Controller
             ->get();
 
         $topServices = Service::withCount('tickets')
-            ->having('tickets_count', '>', 0)
+            ->has('tickets')
             ->orderByDesc('tickets_count')
             ->take(5)
             ->get(['id', 'name']);

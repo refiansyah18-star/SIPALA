@@ -19,10 +19,19 @@ class RoleMiddleware
         $user = $request->user();
 
         if (!$user || !$user->is_active) {
+            if ($user) {
+                \Illuminate\Support\Facades\Auth::guard('web')->logout();
+                if ($request->hasSession()) {
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                }
+            }
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Unauthorized.'], 403);
             }
-            return redirect()->route('login')->with('error', 'Akses ditolak.');
+            return redirect()->route('login')->withErrors([
+                'login' => 'Akun Anda tidak aktif atau akses ditolak.',
+            ]);
         }
 
         $userRole = $request->user()->userType->name;

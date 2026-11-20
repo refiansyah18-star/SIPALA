@@ -192,7 +192,7 @@ class Ticket extends Model
         $year = date('Y');
 
         $lastTicket = static::where('ticket_number', 'like', "{$prefix}-{$year}-%")
-                            ->orderByRaw('CAST(SUBSTRING_INDEX(ticket_number, "-", -1) AS UNSIGNED) DESC')
+                            ->orderByRaw('LENGTH(ticket_number) DESC, ticket_number DESC')
                             ->first();
 
         if ($lastTicket) {

@@ -54,7 +54,7 @@ Route::post('/logout', [LoginController::class, 'logout'])->middleware(['auth', 
 // AUTHENTICATED ROUTES
 // =============================================
 
-Route::middleware(['auth', 'prevent.back', 'log.activity'])->group(function () {
+Route::middleware(['auth', 'active', 'prevent.back', 'log.activity'])->group(function () {
 
     // Dashboard (auto-routes by role)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -117,7 +117,7 @@ Route::middleware(['auth', 'prevent.back', 'log.activity'])->group(function () {
         Route::delete('services/{service}/fields/{field}', [\App\Http\Controllers\Admin\ServiceFieldController::class, 'destroy'])->name('services.fields.destroy');
 
         // Staff & Specialties Management
-        Route::resource('staff', \App\Http\Controllers\Admin\StaffController::class);
+        Route::resource('staff', \App\Http\Controllers\Admin\StaffController::class)->except(['show']);
 
         // Alumni Verification & Account Management
         Route::get('alumni-verifications', [\App\Http\Controllers\Admin\AlumniVerificationController::class, 'index'])->name('alumni.index');

@@ -34,7 +34,7 @@ class TicketController extends Controller
             $assignedQuery->whereHas('status', fn($q) => $q->where('name', $request->status));
         }
 
-        $assignedTickets = $assignedQuery->paginate(15, ['*'], 'assigned_page');
+        $assignedTickets = $assignedQuery->paginate(15, ['*'], 'assigned_page')->withQueryString();
 
         // Unassigned or pending tickets in this staff's specialties (for awareness / picking up)
         $specialtyTickets = Ticket::whereIn('service_id', $specialtyServiceIds)

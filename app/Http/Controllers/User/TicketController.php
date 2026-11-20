@@ -35,7 +35,7 @@ class TicketController extends Controller
             $query->whereHas('status', fn($q) => $q->where('name', $request->status));
         }
 
-        $tickets = $query->paginate(10);
+        $tickets = $query->paginate(10)->withQueryString();
         $statuses = Status::ordered()->get();
 
         return view('user.tickets.index', compact('tickets', 'statuses'));
@@ -126,9 +126,22 @@ class TicketController extends Controller
         }
 
         // =============================================
-        // 2. VALIDASI BACKEND: PERSYARATAN DOKUMEN (REQUIREMENTS)
+        // 2. VALIDASI BACKEND: PERSYARATAN DOKUMEN (REQUIREMENTS) & MIME TYPE
         // =============================================
         $rawAttachments = $request->file('attachments', []);
+        $mimeWhitelistByExt = [
+            'pdf'  => ['application/pdf'],
+            'jpg'  => ['image/jpeg'],
+            'jpeg' => ['image/jpeg'],
+            'png'  => ['image/png'],
+            'doc'  => ['application/msword', 'application/vnd.ms-office', 'application/octet-stream'],
+            'docx' => [
+                'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'application/zip',
+                'application/octet-stream',
+            ],
+        ];
+        $globalAllowed = array_keys($mimeWhitelistByExt);
 
         foreach ($service->requirements as $req) {
             $reqKey = "attachments.{$req->id}";
@@ -142,15 +155,9 @@ class TicketController extends Controller
                 $reqFiles = is_array($f) ? $f : [$f];
             }
 
-            // Pengecekan berkas wajib diunggah
-            if ($req->is_required) {
-                if (empty($reqFiles)) {
-                    // Cek jika pengguna mengunggah via input flat attachments tanpa requirement_id
-                    $hasAnyGeneralFile = !empty($rawAttachments);
-                    if (!$hasAnyGeneralFile) {
-                        $validationErrors[$reqKey] = ["Dokumen persyaratan '{$req->name}' wajib diunggah."];
-                    }
-                }
+            // Pengecekan berkas wajib diunggah untuk setiap persyaratan secara individual
+            if ($req->is_required && empty($reqFiles)) {
+                $validationErrors[$reqKey] = ["Dokumen persyaratan '{$req->name}' wajib diunggah."];
             }
 
             // Validasi batasan spesifik berkas untuk persyaratan ini
@@ -159,7 +166,13 @@ class TicketController extends Controller
                     $validationErrors[$reqKey] = ["Jumlah berkas untuk '{$req->name}' maksimal {$req->max_file_count} berkas."];
                 }
 
-                $allowedExtensions = array_map('trim', explode(',', strtolower($req->allowed_file_types ?: 'pdf,jpg,jpeg,png')));
+                $allowedExtensions = array_values(array_intersect(
+                    array_map('trim', explode(',', strtolower($req->allowed_file_types ?: 'pdf,jpg,jpeg,png'))),
+                    $globalAllowed
+                ));
+                if (empty($allowedExtensions)) {
+                    $allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png'];
+                }
 
                 foreach ($reqFiles as $file) {
                     if (!$file || !$file->isValid()) {
@@ -176,10 +189,13 @@ class TicketController extends Controller
                         $validationErrors[$reqKey] = ["Ukuran berkas '{$file->getClientOriginalName()}' melebihi batas maksimal ({$limitText})."];
                     }
 
-                    // Validasi ekstensi yang diizinkan
+                    // Validasi ekstensi dan kesesuaian tipe MIME asli berkas (Anti-Spoofing / Anti-XSS)
                     $ext = strtolower($file->getClientOriginalExtension());
+                    $detectedMime = $this->detectFileMimeType($file);
                     if (!in_array($ext, $allowedExtensions, true)) {
                         $validationErrors[$reqKey] = ["Format berkas '{$file->getClientOriginalName()}' tidak diizinkan. Ekstensi yang diizinkan: " . implode(', ', $allowedExtensions)];
+                    } elseif (!in_array($detectedMime, $mimeWhitelistByExt[$ext] ?? [], true)) {
+                        $validationErrors[$reqKey] = ["Isi berkas '{$file->getClientOriginalName()}' tidak sesuai dengan format .{$ext} yang sah."];
                     }
                 }
             }
@@ -191,13 +207,19 @@ class TicketController extends Controller
                 $filesToCheck = is_array($attItem) ? $attItem : [$attItem];
                 foreach ($filesToCheck as $f) {
                     if ($f instanceof \Illuminate\Http\UploadedFile) {
+                        if (!$f->isValid()) {
+                            $validationErrors["attachments.{$idx}"] = ["Berkas '{$f->getClientOriginalName()}' gagal diunggah atau rusak."];
+                            continue;
+                        }
                         if ($f->getSize() > 5 * 1024 * 1024) {
                             $validationErrors["attachments.{$idx}"] = ["Ukuran berkas '{$f->getClientOriginalName()}' melebihi batas maksimum 5 MB."];
                         }
                         $ext = strtolower($f->getClientOriginalExtension());
-                        $globalAllowed = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'];
+                        $detectedMime = $this->detectFileMimeType($f);
                         if (!in_array($ext, $globalAllowed, true)) {
                             $validationErrors["attachments.{$idx}"] = ["Format berkas '{$f->getClientOriginalName()}' ({$ext}) tidak didukung."];
+                        } elseif (!in_array($detectedMime, $mimeWhitelistByExt[$ext] ?? [], true)) {
+                            $validationErrors["attachments.{$idx}"] = ["Isi berkas '{$f->getClientOriginalName()}' tidak sesuai dengan tipe berkas yang diizinkan."];
                         }
                     }
                 }
@@ -279,7 +301,7 @@ class TicketController extends Controller
                                 'stored_name'    => basename($storedPath),
                                 'file_path'      => $storedPath,
                                 'file_size'      => $file->getSize(),
-                                'mime_type'      => $file->getMimeType(),
+                                'mime_type'      => $this->detectFileMimeType($file),
                             ]);
                         }
                     }
@@ -417,6 +439,35 @@ class TicketController extends Controller
             }
         }
 
-        return Storage::disk($disk)->response($attachment->file_path, $attachment->original_name);
+        $detectedMime = strtolower((string) Storage::disk($disk)->mimeType($attachment->file_path));
+        $safeInlineMimes = ['application/pdf', 'image/jpeg', 'image/png'];
+        $headers = [
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; style-src 'unsafe-inline';",
+        ];
+
+        if (in_array($detectedMime, $safeInlineMimes, true)) {
+            return Storage::disk($disk)->response($attachment->file_path, $attachment->original_name, $headers);
+        }
+
+        return Storage::disk($disk)->download($attachment->file_path, $attachment->original_name, $headers);
+    }
+
+    /**
+     * Deteksi tipe MIME asli berdasarkan isi biner berkas (magic bytes via finfo),
+     * bukan sekadar ekstensi nama file.
+     */
+    protected function detectFileMimeType(\Illuminate\Http\UploadedFile $file): string
+    {
+        $realPath = $file->getRealPath();
+        if ($realPath && is_file($realPath) && class_exists(\finfo::class)) {
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $detected = $finfo->file($realPath);
+            if (is_string($detected) && $detected !== '') {
+                return strtolower(trim(explode(';', $detected)[0]));
+            }
+        }
+
+        return strtolower((string) $file->getMimeType());
     }
 }

@@ -53,7 +53,7 @@ class ServiceController extends Controller
         try {
             DB::beginTransaction();
 
-            $data = $request->except('targets');
+            $data = $request->only(['name', 'category_id', 'unit_id', 'description', 'sla_duration', 'sla_unit', 'sort_order']);
             $data['is_active'] = $request->has('is_active');
             $data['sort_order'] = $request->sort_order ?? (Service::where('category_id', $request->category_id)->max('sort_order') + 1);
 
@@ -112,7 +112,7 @@ class ServiceController extends Controller
         try {
             DB::beginTransaction();
 
-            $data = $request->except('targets');
+            $data = $request->only(['name', 'category_id', 'unit_id', 'description', 'sla_duration', 'sla_unit', 'sort_order']);
             $data['is_active'] = $request->has('is_active');
 
             $service->update($data);

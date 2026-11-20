@@ -29,7 +29,7 @@ class AdminUserController extends Controller
             });
         }
 
-        $admins = $query->orderBy('nama')->paginate(15);
+        $admins = $query->orderBy('nama')->paginate(15)->withQueryString();
 
         return view('admin.admins.index', compact('admins'));
     }
@@ -112,7 +112,26 @@ class AdminUserController extends Controller
             return redirect()->route('admin.admins.index')->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
 
-        $admin->delete();
+        $hasHistory = \App\Models\TicketAssignment::where('assigned_by', $admin->id)->exists()
+            || \App\Models\TicketStatusHistory::where('changed_by', $admin->id)->exists()
+            || \App\Models\TicketMessage::where('user_id', $admin->id)->exists()
+            || \App\Models\ActivityLog::where('user_id', $admin->id)->exists()
+            || \App\Models\EmailNotification::where('user_id', $admin->id)->exists()
+            || $admin->tickets()->exists();
+
+        if ($hasHistory) {
+            $admin->update(['is_active' => false]);
+            return redirect()->route('admin.admins.index')
+                ->with('info', "Admin {$admin->nama} memiliki riwayat aktivitas/tiket, status diubah menjadi Nonaktif agar jejak audit tetap terjaga.");
+        }
+
+        try {
+            $admin->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $admin->update(['is_active' => false]);
+            return redirect()->route('admin.admins.index')
+                ->with('info', "Admin {$admin->nama} memiliki riwayat data terkait, status diubah menjadi Nonaktif.");
+        }
 
         return redirect()->route('admin.admins.index')->with('success', 'Admin berhasil dihapus.');
     }

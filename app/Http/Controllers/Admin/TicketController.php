@@ -55,7 +55,7 @@ class TicketController extends Controller
             });
         }
 
-        $tickets = $query->paginate(15);
+        $tickets = $query->paginate(15)->withQueryString();
         $categories = Category::active()->orderBy('name')->get();
         $statuses = Status::ordered()->get();
 
@@ -288,6 +288,10 @@ class TicketController extends Controller
      */
     public function storeMessage(Request $request, Ticket $ticket)
     {
+        if ($ticket->status && $ticket->status->is_terminal) {
+            return back()->with('error', 'Pesan tidak dapat dikirim karena tiket sudah berstatus akhir.');
+        }
+
         $request->validate([
             'message' => 'required|string|max:50',
         ], [

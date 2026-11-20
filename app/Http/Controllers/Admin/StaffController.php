@@ -39,7 +39,7 @@ class StaffController extends Controller
             });
         }
 
-        $staffList = $query->orderBy('nama')->paginate(15);
+        $staffList = $query->orderBy('nama')->paginate(15)->withQueryString();
         $services = Service::active()->orderBy('name')->get();
 
         return view('admin.staff.index', compact('staffList', 'services'));
@@ -161,15 +161,28 @@ class StaffController extends Controller
     {
         $this->ensureIsStaffUser($staff);
 
-        if ($staff->assignedTickets()->exists()) {
-            // Jika ada tiket terkait, jangan hapus hard, melainkan nonaktifkan
+        $hasHistory = $staff->assignedTickets()->exists()
+            || \App\Models\TicketStatusHistory::where('changed_by', $staff->id)->exists()
+            || \App\Models\TicketMessage::where('user_id', $staff->id)->exists()
+            || \App\Models\ActivityLog::where('user_id', $staff->id)->exists()
+            || \App\Models\EmailNotification::where('user_id', $staff->id)->exists()
+            || $staff->tickets()->exists();
+
+        if ($hasHistory) {
+            // Jika memiliki riwayat tiket/audit trail, nonaktifkan akun agar integritas log terjaga
             $staff->update(['is_active' => false]);
             return redirect()->route('admin.staff.index')
-                ->with('info', "Staff {$staff->nama} memiliki riwayat tiket, status diubah menjadi Nonaktif.");
+                ->with('info', "Staff {$staff->nama} memiliki riwayat aktivitas/tiket, status diubah menjadi Nonaktif agar jejak audit tetap terjaga.");
         }
 
-        $staff->staffSpecialties()->detach();
-        $staff->delete();
+        try {
+            $staff->staffSpecialties()->detach();
+            $staff->delete();
+        } catch (\Illuminate\Database\QueryException $e) {
+            $staff->update(['is_active' => false]);
+            return redirect()->route('admin.staff.index')
+                ->with('info', "Staff {$staff->nama} memiliki riwayat data terkait, status diubah menjadi Nonaktif.");
+        }
 
         return redirect()->route('admin.staff.index')
             ->with('success', "Staff {$staff->nama} berhasil dihapus.");

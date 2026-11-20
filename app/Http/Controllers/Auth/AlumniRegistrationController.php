@@ -58,7 +58,7 @@ class AlumniRegistrationController extends Controller
             'tahun_lulus' => ['required', 'integer', 'min:1970', 'max:' . (int) date('Y')],
             'email' => 'required|email:rfc|max:255',
             'no_hp' => ['required', 'string', 'min:9', 'max:20', 'regex:/^[0-9+\-\s()]+$/'],
-            'proof_file' => 'required|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'proof_file' => 'required|file|mimes:pdf,jpg,jpeg,png|mimetypes:application/pdf,image/jpeg,image/png|max:2048',
             'password' => 'required|string|min:8|confirmed',
         ], [
             'nim.regex' => 'NIM hanya boleh berisi huruf, angka, titik, garis bawah, atau tanda hubung.',
@@ -143,7 +143,7 @@ class AlumniRegistrationController extends Controller
                     'tahun_lulus' => (int) $validated['tahun_lulus'],
                     'proof_file_path' => $storedPath,
                     'proof_original_name' => $file->getClientOriginalName(),
-                    'proof_mime_type' => $file->getClientMimeType(),
+                    'proof_mime_type' => $file->getMimeType(),
                     'password' => Hash::make($validated['password']),
                     'status' => AlumniRegistration::STATUS_PENDING,
                 ]);

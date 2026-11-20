@@ -27,10 +27,10 @@ class ServiceFieldController extends Controller
         $data['is_required'] = $request->has('is_required');
         $data['sort_order'] = $request->sort_order ?? ($service->fields()->max('sort_order') + 1);
 
-        // Convert options string to JSON array if applicable
+        // Convert options string to array if applicable (casted to JSON by ServiceField model)
         if (in_array($request->field_type, ['select', 'radio', 'checkbox']) && !empty($request->options)) {
-            $optionsArray = array_map('trim', explode(',', $request->options));
-            $data['options'] = json_encode($optionsArray);
+            $optionsArray = array_values(array_filter(array_map('trim', explode(',', $request->options)), fn($v) => $v !== ''));
+            $data['options'] = $optionsArray;
         } else {
             $data['options'] = null;
         }
@@ -61,8 +61,8 @@ class ServiceFieldController extends Controller
         $data['is_required'] = $request->has('is_required');
 
         if (in_array($request->field_type, ['select', 'radio', 'checkbox']) && !empty($request->options)) {
-            $optionsArray = array_map('trim', explode(',', $request->options));
-            $data['options'] = json_encode($optionsArray);
+            $optionsArray = array_values(array_filter(array_map('trim', explode(',', $request->options)), fn($v) => $v !== ''));
+            $data['options'] = $optionsArray;
         } else {
             $data['options'] = null;
         }
@@ -80,7 +80,7 @@ class ServiceFieldController extends Controller
         if ($field->service_id !== $service->id) {
             abort(403, 'Field tidak sesuai dengan layanan target.');
         }
-        if ($field->values()->exists()) {
+        if ($field->ticketValues()->exists()) {
             return redirect()->route('admin.services.edit', $service)->with('error', 'Field tidak dapat dihapus karena sudah memiliki data dari tiket yang diajukan.');
         }
 

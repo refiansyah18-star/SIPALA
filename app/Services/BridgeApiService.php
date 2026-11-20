@@ -231,6 +231,11 @@ class BridgeApiService
      */
     protected function getV1(string $path, array $query = []): ?array
     {
+        if (trim($this->v1Token) === '') {
+            Log::warning('Bridge API v1 token belum dikonfigurasi pada environment.', ['path' => $path]);
+            return null;
+        }
+
         try {
             $response = Http::timeout($this->timeout)
                 ->accept('application/json')
